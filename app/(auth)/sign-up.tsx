@@ -1,110 +1,147 @@
-import { useSignUp } from '@clerk/clerk-expo'
+import { ThemedText } from '@/components/ThemedText'
+import { ThemedView } from '@/components/ThemedView'
+import { Button, ButtonText } from '@/components/ui/button'
+import { Heading } from '@/components/ui/heading'
+import { Input, InputField } from '@/components/ui/input'
+import { Toast, ToastTitle, ToastDescription, useToast } from '@/components/ui/toast'
+import { useAuth } from '@/contexts/AuthContext'
 import { Link, useRouter } from 'expo-router'
-import * as React from 'react'
-import { Text, TextInput, TouchableOpacity, View } from 'react-native'
+import React, { useState } from 'react'
+import { Alert, TouchableOpacity, View } from 'react-native'
 
 export default function SignUpScreen() {
-  const { isLoaded, signUp, setActive } = useSignUp()
+  const { signUp, isLoading } = useAuth()
   const router = useRouter()
+  const toast = useToast()
 
-  const [emailAddress, setEmailAddress] = React.useState('')
-  const [password, setPassword] = React.useState('')
-  const [pendingVerification, setPendingVerification] = React.useState(false)
-  const [code, setCode] = React.useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  // Handle submission of sign-up form
   const onSignUpPress = async () => {
-    if (!isLoaded) return
-
-    // Start sign-up process using email and password provided
-    try {
-      await signUp.create({
-        emailAddress,
-        password,
+    if (isLoading || submitting) return
+    
+    if (password !== confirmPassword) {
+      toast.show({
+        placement: "top",
+        render: ({ id }) => {
+          return (
+            <Toast nativeID={"toast-" + id} action="error" variant="solid">
+              <ToastTitle>Error</ToastTitle>
+              <ToastDescription>Passwords do not match</ToastDescription>
+            </Toast>
+          )
+        }
       })
-
-      // Send user an email with verification code
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
-
-      // Set 'pendingVerification' to true to display second form
-      // and capture OTP code
-      setPendingVerification(true)
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+      return
     }
-  }
-
-  // Handle submission of verification form
-  const onVerifyPress = async () => {
-    if (!isLoaded) return
 
     try {
-      // Use the code the user provided to attempt verification
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
-      })
-
-      // If verification was completed, set the session to active
-      // and redirect the user
-      if (signUpAttempt.status === 'complete') {
-        await setActive({ session: signUpAttempt.createdSessionId })
-        router.replace('/')
+      setSubmitting(true)
+      const { error, data } = await signUp(email, password)
+      
+      if (error) {
+        toast.show({
+          placement: "top",
+          render: ({ id }) => {
+            return (
+              <Toast nativeID={"toast-" + id} action="error" variant="solid">
+                <ToastTitle>Error</ToastTitle>
+                <ToastDescription>{error.message || 'Failed to sign up'}</ToastDescription>
+              </Toast>
+            )
+          }
+        })
+        console.error('Sign up error:', error)
       } else {
-        // If the status is not complete, check why. User may need to
-        // complete further steps.
-        console.error(JSON.stringify(signUpAttempt, null, 2))
+        toast.show({
+          placement: "top",
+          render: ({ id }) => {
+            return (
+              <Toast nativeID={"toast-" + id} action="success" variant="solid">
+                <ToastTitle>Success</ToastTitle>
+                <ToastDescription>Your account has been created! Please check your email for verification.</ToastDescription>
+              </Toast>
+            )
+          }
+        })
+        // The auth listener will handle redirection if email verification is not required
       }
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+    } catch (error) {
+      console.error('Unexpected error during sign up:', error)
+      toast.show({
+        placement: "top",
+        render: ({ id }) => {
+          return (
+            <Toast nativeID={"toast-" + id} action="error" variant="solid">
+              <ToastTitle>Error</ToastTitle>
+              <ToastDescription>An unexpected error occurred</ToastDescription>
+            </Toast>
+          )
+        }
+      })
+    } finally {
+      setSubmitting(false)
     }
-  }
-
-  if (pendingVerification) {
-    return (
-      <>
-        <Text>Verify your email</Text>
-        <TextInput
-          value={code}
-          placeholder="Enter your verification code"
-          onChangeText={(code) => setCode(code)}
-        />
-        <TouchableOpacity onPress={onVerifyPress}>
-          <Text>Verify</Text>
-        </TouchableOpacity>
-      </>
-    )
   }
 
   return (
-    <View>
-      <>
-        <Text>Sign up</Text>
-        <TextInput
-          autoCapitalize="none"
-          value={emailAddress}
-          placeholder="Enter email"
-          onChangeText={(email) => setEmailAddress(email)}
-        />
-        <TextInput
-          value={password}
-          placeholder="Enter password"
-          secureTextEntry={true}
-          onChangeText={(password) => setPassword(password)}
-        />
-        <TouchableOpacity onPress={onSignUpPress}>
-          <Text>Continue</Text>
-        </TouchableOpacity>
-        <View style={{ display: 'flex', flexDirection: 'row', gap: 3 }}>
-          <Text>Already have an account?</Text>
-          <Link href="./sign-in">
-            <Text>Sign in</Text>
-          </Link>
-        </View>
-      </>
-    </View>
+    <ThemedView className="flex-1 p-5 justify-center">
+      <Heading className="mb-6 text-center text-4xl">Create Account</Heading>
+      
+      <View className="mb-8">
+        <Input className="mb-4">
+          <InputField
+            className="h-12 rounded-xl text-base"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            placeholder="Email"
+            onChangeText={setEmail}
+          />
+        </Input>
+        
+        <Input className="mb-4">
+          <InputField
+            className="h-12 rounded-xl text-base"
+            value={password}
+            placeholder="Password"
+            secureTextEntry={true}
+            onChangeText={setPassword}
+          />
+        </Input>
+        
+        <Input className="mb-4">
+          <InputField
+            className="h-12 rounded-xl text-base"
+            value={confirmPassword}
+            placeholder="Confirm Password"
+            secureTextEntry={true}
+            onChangeText={setConfirmPassword}
+          />
+        </Input>
+      </View>
+      
+      <Button
+        size="lg"
+        variant="solid"
+        action="primary"
+        isDisabled={submitting || isLoading || !email || !password || !confirmPassword}
+        onPress={onSignUpPress}
+        className="h-12 w-full rounded-xl"
+      >
+        <ButtonText>{submitting ? 'Creating Account...' : 'Sign Up'}</ButtonText>
+      </Button>
+
+      <View className="mt-8 flex-row justify-center items-center space-x-2">
+        <ThemedText>Already have an account?</ThemedText>
+        <Link href="/(auth)/sign-in" asChild>
+          <TouchableOpacity className="p-1">
+            <ThemedText type="link">Sign In</ThemedText>
+          </TouchableOpacity>
+        </Link>
+      </View>
+    </ThemedView>
   )
 }
