@@ -25,8 +25,9 @@ function InitialLayout() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
+    const inModalsGroup = segments[0] === '(modals)';
 
-    if (session && !inTabsGroup) {
+    if (session && !inTabsGroup && !inModalsGroup) {
       // If user is signed in but not in tabs group, redirect to tabs
       router.replace('/(tabs)');
     } else if (!session && !inAuthGroup) {

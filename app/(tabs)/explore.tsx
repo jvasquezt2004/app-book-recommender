@@ -136,16 +136,13 @@ export default function ExploreScreen() {
                         <ActivityIndicator size="large" color="white" />
                     </View>
                 ) : (
-                    <View className="flex-1 mt-10">
+                    <View className="flex-1 mt-10 p-4">
                         {books.length > 0 ? (
                             <FlatList 
                                 data={books}
                                 renderItem={({item}) => (
                                     <BookCard
                                         book={item}
-                                        onPress={() => {
-                                            
-                                        }}
                                     />
                                 )}
                                 keyExtractor={(item) => item.id}
