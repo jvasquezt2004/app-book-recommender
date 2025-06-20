@@ -14,7 +14,7 @@ export const API_HOST: string =
   (extra.API_HOST as string) ||
   (process.env.EXPO_PUBLIC_API_HOST as string) ||
   (process.env.API_HOST as string) ||
-  'localhost';
+  '192.168.0.65';
 
 export const API_PORT: string =
   (extra.API_PORT as string) ||

@@ -11,8 +11,10 @@ export type Book = {
   id: string;
   metadata: {
     title: string;
-    authors: string;
-    thumbnail: string;
+    authors?: string;
+    author?: string;
+    thumbnail?: string;
+    cover_url?: string;
     description: string;
     categories?: string;
     published_year?: number;
@@ -22,16 +24,21 @@ export type Book = {
 
 type BookCardProps = {
   book: Book;
+  onPress?: () => void;
 }
 
-export function BookCard({ book }: BookCardProps) {
-  return (
-    <Link href={`/book/${book.id}`} asChild>
-    <Pressable className="w-[48%] mb-4"> 
+export function BookCard({ book, onPress }: BookCardProps) {
+  const thumbnailUri =
+    typeof book.metadata.thumbnail === 'string' && book.metadata.thumbnail
+      ? book.metadata.thumbnail
+      : typeof book.metadata.cover_url === 'string' && book.metadata.cover_url
+      ? book.metadata.cover_url
+      : '';
+  const CardContent = () => (
     <Card className="bg-gray-800 p-2 rounded-xl min-h-80 justify-between">
-      <Image source={{ uri: book.metadata.thumbnail }} className="w-full h-48 rounded-lg mb-6 " alt={book.metadata.title} />
+      <Image source={{ uri: thumbnailUri }} className="w-full h-48 rounded-lg mb-6 " alt={book.metadata.title} />
       <View className="flex flex-row justify-between">
-        <Text className="text-white text-sm mb-2">{book.metadata.authors}</Text>
+        <Text className="text-white text-sm mb-2">{book.metadata.authors || book.metadata.author}</Text>
         {book.metadata.published_year && (
           <Text className="text-white text-sm mb-2">{book.metadata.published_year}</Text>
         )}
@@ -42,7 +49,21 @@ export function BookCard({ book }: BookCardProps) {
         <Icon as={ArrowRightIcon} size="sm" className="text-info-600 mt-0.5 ml-0.5" />
       </HStack>
     </Card>
-    </Pressable>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} className="w-[48%] mb-4">
+        <CardContent />
+      </Pressable>
+    );
+  }
+
+  return (
+    <Link href={`/book/${book.id}`} asChild>
+      <Pressable className="w-[48%] mb-4">
+        <CardContent />
+      </Pressable>
     </Link>
-  )
+  );
 }

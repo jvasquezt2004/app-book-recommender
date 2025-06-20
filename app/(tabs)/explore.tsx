@@ -1,4 +1,5 @@
 import { Book, BookCard } from "@/components/BookCard";
+import { BookDetailModal } from "@/components/BookDetailModal";
 import { ThemedView } from "@/components/ThemedView";
 import { Button, ButtonIcon } from "@/components/ui/button";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
@@ -15,19 +16,22 @@ export default function ExploreScreen() {
     const [searchQuery, setSearchQuery] = useState('')
     const [isLoading, setIsLoading] = useState(true)
     const [isSearchMode, setIsSearchMode] = useState(false)
+    const [selectedBook, setSelectedBook] = useState<Book | null>(null)
 
     const fetchRandomBooks = async () => {
+        let supaError: any = null;
         try {
             setIsLoading(true)
             setIsSearchMode(false)
             
-            const {data, error} = await supabase
+            const { data, error } = await supabase
                 .from('documents')
-                .select('id, metadata')
+                .select('id, metadata, content')
                 .limit(50)
 
             if (error) {
-                console.error('Error fetching books:', error)
+                supaError = error;
+                console.error('Supabase error fetching books:', error)
                 setIsLoading(false)
                 return
             }
@@ -41,6 +45,10 @@ export default function ExploreScreen() {
                 setBooks([])
             }
         } catch (error) {
+            console.error('Exception (network?) fetching books:', error);
+            if (supaError) {
+              console.log('Supabase error object →', JSON.stringify(supaError, null, 2));
+            }
             console.error('Exception fetching books:', error)
         } finally {
             setIsLoading(false)
@@ -48,20 +56,22 @@ export default function ExploreScreen() {
     }
 
     const searchBooksAI = async (query: string) => {
+        let urlUsed: string = '';
         try {
             setIsLoading(true)
             setIsSearchMode(true)
             
             const apiUrl = `${API_BASE_URL}/search`
 
-            const url = new URL(apiUrl)
-            url.searchParams.append('query', query)
-            url.searchParams.append('limit', '10')
-            url.searchParams.append('offset', '0')
+            const urlObj = new URL(apiUrl)
+            urlObj.searchParams.append('query', query)
+            urlObj.searchParams.append('limit', '10')
+            urlObj.searchParams.append('offset', '0')
             
-            console.log('Fetching books from API:', url.toString())
+            urlUsed = urlObj.toString();
+            console.log('Fetching books from API:', urlUsed)
 
-            const response = await fetch(url.toString())
+            const response = await fetch(urlUsed)
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
@@ -71,18 +81,23 @@ export default function ExploreScreen() {
             console.log('Books fetched from API:', data)
 
             if (data.results && data.results.length > 0) {
-                const formattedBooks = data.results.map((item: {uuid: string, metadata: any}) => ({
+                const formattedBooks = data.results.map((item: {uuid: string, metadata: any, content?: string}) => ({
                     id: item.uuid,
-                    metadata: item.metadata
+                    metadata: item.metadata,
+                    content: item.content || ''
                 }))
                 console.log('Formatted books:', formattedBooks)
                 setBooks(formattedBooks)
             } else {
                 setBooks([])
             }
-        } catch (error) {
-            console.error('Exception fetching books:', error)
-            fetchRandomBooks()
+        } catch (error: any) {
+            console.error('Exception fetching books:', error);
+            console.log('URL used →', urlUsed);
+            try {
+                console.log('Fetch error →', JSON.stringify(error, null, 2));
+            } catch {}
+            fetchRandomBooks();
         } finally {
             setIsLoading(false)
         }
@@ -98,6 +113,19 @@ export default function ExploreScreen() {
 
     useEffect(() => {
         fetchRandomBooks()
+    }, [])
+
+    // Connectivity test: check direct fetch to Supabase and generic HTTPS endpoint
+    useEffect(() => {
+        const supabaseUrlEnv = process.env.EXPO_PUBLIC_SUPABASE_URL as string | undefined;
+        if (supabaseUrlEnv) {
+            fetch(`${supabaseUrlEnv}/rest/v1/`)
+                .then(res => console.log('Supabase test status:', res.status))
+                .catch(err => console.log('Supabase fetch error →', err));
+        }
+        fetch('https://jsonplaceholder.typicode.com/todos/1')
+            .then(res => console.log('JSONPlaceholder status:', res.status))
+            .catch(err => console.log('JSONPlaceholder fetch error →', err));
     }, [])
 
     return (
@@ -143,6 +171,7 @@ export default function ExploreScreen() {
                                 renderItem={({item}) => (
                                     <BookCard
                                         book={item}
+                                        onPress={() => setSelectedBook(item)}
                                     />
                                 )}
                                 keyExtractor={(item) => item.id}
@@ -161,6 +190,11 @@ export default function ExploreScreen() {
                 )}
 
             </ThemedView>
+            <BookDetailModal
+              isOpen={!!selectedBook}
+              book={selectedBook}
+              onClose={() => setSelectedBook(null)}
+            />
         </GluestackUIProvider>
     )
 }

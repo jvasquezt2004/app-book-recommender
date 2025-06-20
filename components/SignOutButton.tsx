@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity } from "react-native";
 import { ThemedText } from "./ThemedText";
 
 export const SignOutButton = () => {
@@ -17,25 +17,10 @@ export const SignOutButton = () => {
   };
 
   return (
-    <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-      <ThemedText style={styles.text}>Sign Out</ThemedText>
+    <TouchableOpacity className="bg-red-600 py-3 px-5 rounded-lg mt-4 self-center" onPress={handleSignOut}>
+      <ThemedText className="text-white font-bold">Sign Out</ThemedText>
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: '#f44336',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginTop: 16,
-    alignSelf: 'center'
-  },
-  text: {
-    color: 'white',
-    fontWeight: 'bold',
-  }
-});
 
 export default SignOutButton;

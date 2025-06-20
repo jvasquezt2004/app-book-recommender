@@ -1,92 +1,108 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Book, BookCard } from '@/components/BookCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { Link } from 'expo-router';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+
+
+
+import SignOutButton from '@/components/SignOutButton';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import SignOutButton from '@/components/SignOutButton';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { useEffect, useState } from 'react';
 
 export default function HomeScreen() {
+  const [bookOfDay, setBookOfDay] = useState<Book | null>(null);
+  const [loadingBod, setLoadingBod] = useState(true);
+
   const { user, session } = useAuth();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const stored = await AsyncStorage.getItem('bookOfDay');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.date === today && parsed.book) {
+            setBookOfDay(parsed.book);
+            return;
+          }
+        }
+        // fetch random book from supabase
+        const { count, error: countErr } = await supabase
+          .from('documents')
+          .select('*', { count: 'exact', head: true });
+        if (countErr) throw countErr;
+        if (!count || count === 0) {
+          setBookOfDay(null);
+          return;
+        }
+        const randomIndex = Math.floor(Math.random() * count);
+        const { data, error } = await supabase
+          .from('documents')
+          .select('id, metadata, content')
+          .range(randomIndex, randomIndex);
+        if (error || !data || data.length === 0) throw error || new Error('No data');
+        const randomBook = data[0] as Book;
+        setBookOfDay(randomBook);
+        await AsyncStorage.setItem(
+          'bookOfDay',
+          JSON.stringify({ date: today, book: randomBook })
+        );
+      } catch (e) {
+        console.error('Book of the day error', e);
+      } finally {
+        setLoadingBod(false);
+      }
+    })();
+  }, []);
+
   
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
+    <GluestackUIProvider mode="dark">
+    <ThemedView className="flex flex-col h-full flex-1 pt-12 pb-4 px-4">
+        {session && (
+          <ThemedView className="px-4 pt-4">
+            <ThemedText type="title">Welcome back, {user?.email?.split('@')[0] || 'User'}!</ThemedText>
+          </ThemedView>
+        )}
 
-      {/* Auth-conditional content */}
-      {session && (
-        <ThemedView style={styles.authContainer}>
-          <ThemedText type="title">Welcome, {user?.email?.split('@')[0] || 'User'}!</ThemedText>
-          <ThemedText>You are successfully signed in with Supabase.</ThemedText>
-          <SignOutButton />
-        </ThemedView>
-      )}
-
-      {!session && (
-        <ThemedView style={styles.authContainer}>
-          <ThemedText type="subtitle">Authentication Required</ThemedText>
-          <ThemedText>Please sign in to access the full features of this app.</ThemedText>
-          <View style={styles.buttonContainer}>
-            <Link href="/(auth)/sign-in" asChild>
-              <TouchableOpacity style={styles.primaryButton}>
-                <ThemedText style={styles.primaryButtonText}>Sign In</ThemedText>
-              </TouchableOpacity>
-            </Link>
-            <Link href="/(auth)/sign-up" asChild>
-              <TouchableOpacity style={styles.secondaryButton}>
-                <ThemedText>Sign Up</ThemedText>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </ThemedView>
-      )}
-      
-      {/* Standard app content can go below, visible to all users */}
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+        {!session && (
+          <ThemedView style={styles.authContainer}>
+            <ThemedText type="subtitle">Authentication Required</ThemedText>
+            <ThemedText>Please sign in to access the full features of this app.</ThemedText>
+            <View style={styles.buttonContainer}>
+              <Link href="/(auth)/sign-in" asChild>
+                <TouchableOpacity style={styles.primaryButton}>
+                  <ThemedText style={styles.primaryButtonText}>Sign In</ThemedText>
+                </TouchableOpacity>
+              </Link>
+              <Link href="/(auth)/sign-up" asChild>
+                <TouchableOpacity style={styles.secondaryButton}>
+                  <ThemedText>Sign Up</ThemedText>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </ThemedView>
+        )}
+        {session && (
+          <ThemedView style={styles.authContainer}>
+            <SignOutButton />
+          </ThemedView>
+        )}
+        {/* Book of the Day */}
+        {loadingBod ? null : bookOfDay && (
+          <ThemedView style={styles.stepContainer}>
+            <ThemedText type="subtitle">Book of the Day</ThemedText>
+            <BookCard book={bookOfDay} onPress={() => {}} />
+          </ThemedView>
+        )}
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </GluestackUIProvider>
   );
 }
 
@@ -99,13 +115,6 @@ const styles = StyleSheet.create({
   stepContainer: {
     gap: 8,
     marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
   },
   // Auth-related styles
   authContainer: {
