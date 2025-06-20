@@ -25,22 +25,25 @@ export type Book = {
 type BookCardProps = {
   book: Book;
   onPress?: () => void;
+  widthClass?: string; // tailwind width class override
 }
 
-export function BookCard({ book, onPress }: BookCardProps) {
+export function BookCard({ book, onPress, widthClass }: BookCardProps) {
   const thumbnailUri =
     typeof book.metadata.thumbnail === 'string' && book.metadata.thumbnail
       ? book.metadata.thumbnail
       : typeof book.metadata.cover_url === 'string' && book.metadata.cover_url
       ? book.metadata.cover_url
       : '';
+  const wrapClass = widthClass ?? 'w-[48%]';
+
   const CardContent = () => (
     <Card className="bg-gray-800 p-2 rounded-xl min-h-80 justify-between">
       <Image source={{ uri: thumbnailUri }} className="w-full h-48 rounded-lg mb-6 " alt={book.metadata.title} />
-      <View className="flex flex-row justify-between">
-        <Text className="text-white text-sm mb-2">{book.metadata.authors || book.metadata.author}</Text>
+      <View className="flex flex-row items-center justify-between mb-1">
+        <Text className="text-white text-xs flex-1 mr-1" numberOfLines={1} ellipsizeMode="tail">{book.metadata.authors || book.metadata.author}</Text>
         {book.metadata.published_year && (
-          <Text className="text-white text-sm mb-2">{book.metadata.published_year}</Text>
+          <Text className="text-white text-xs ml-1 shrink-0">{book.metadata.published_year}</Text>
         )}
       </View>
       <Heading size="md" className="text-white mb-4" numberOfLines={2} ellipsizeMode="tail">{book.metadata.title}</Heading>
@@ -53,7 +56,7 @@ export function BookCard({ book, onPress }: BookCardProps) {
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} className="w-[48%] mb-4">
+      <Pressable onPress={onPress} className={`${wrapClass} mb-4`}>
         <CardContent />
       </Pressable>
     );
@@ -61,7 +64,7 @@ export function BookCard({ book, onPress }: BookCardProps) {
 
   return (
     <Link href={`/book/${book.id}`} asChild>
-      <Pressable className="w-[48%] mb-4">
+      <Pressable className={`${wrapClass} mb-4`}>
         <CardContent />
       </Pressable>
     </Link>
