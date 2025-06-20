@@ -26,6 +26,7 @@ export default function UploadScreen() {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
+  const [publishedYear, setPublishedYear] = useState('');
   const [summary, setSummary] = useState('');
   const categories = [
     "Fiction", "Non-fiction", "Science Fiction", "Fantasy", "Mystery", "Romance", "Biography", "History", "Poetry", "Self-help", "Business", "Travel", "Religion", "Science", "Philosophy", "Art", "Thriller", "Horror", "Young Adult", "Children",
@@ -135,6 +136,13 @@ export default function UploadScreen() {
               <InputField placeholder="Author" value={author} onChangeText={setAuthor} />
             </Input>
           </ThemedView>
+          {/* Published Year */}
+          <ThemedView className="gap-2 mt-4">
+            <Text className="text-sm font-semibold text-zinc-300">Published Year</Text>
+            <Input variant="outline">
+              <InputField placeholder="e.g. 2020" keyboardType="numeric" value={publishedYear} onChangeText={setPublishedYear} />
+            </Input>
+          </ThemedView>
           <ThemedView className="gap-2 mt-4">
             <Text className="text-sm font-semibold text-zinc-300">Description</Text>
             <TextInput
@@ -235,6 +243,7 @@ export default function UploadScreen() {
                     author: author.trim(),
                     description: description.trim(),
                     category: selectedCategory,
+                    published_year: publishedYear.trim() ? parseInt(publishedYear.trim(), 10) : undefined,
                     cover_url: imageUri || '',
                   },
                 };
@@ -277,6 +286,7 @@ export default function UploadScreen() {
               !summary.trim() ||
               !title.trim() ||
               !author.trim() ||
+              !publishedYear.trim() ||
               !description.trim() ||
               !selectedCategory
             }
