@@ -133,11 +133,6 @@ export default function HomeScreen() {
             </View>
           </ThemedView>
         )}
-        {session && (
-          <ThemedView style={styles.authContainer}>
-            <SignOutButton />
-          </ThemedView>
-        )}
         {/* Book of the Day */}
         {loadingBod ? null : bookOfDay && (
           <ThemedView style={styles.stepContainer}>

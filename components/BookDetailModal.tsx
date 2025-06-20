@@ -80,6 +80,10 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({ isOpen, onClos
                 </ThemedText>
               </ThemedView>
               <ThemedView className="p-4">
+                <ThemedText className="font-bold mb-1">Category:</ThemedText>
+                <ThemedText>{book.metadata.categories}</ThemedText>
+              </ThemedView>
+              <ThemedView className="p-4">
                 <ThemedText className="font-bold mb-1">Description:</ThemedText>
                 <ThemedText>{book.metadata.description}</ThemedText>
               </ThemedView>
